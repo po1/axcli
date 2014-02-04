@@ -1,0 +1,14 @@
+<?xml version="1.0"?>
+<package>
+  <name>axcli</name>
+  <version>0.0.0</version>
+  <description>A simple actionlib CLI client</description>
+
+  <maintainer email="paul.mathieu@pal-robotics.com">Paul Mathieu</maintainer>
+
+  <author email="paul.mathieu@pal-robotics.com">Paul Mathieu</author>
+
+  <license>BSD</license>
+
+  <buildtool_depend>catkin</buildtool_depend>
+</package>

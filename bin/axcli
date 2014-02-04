@@ -1,0 +1,71 @@
+#!/usr/bin/env python
+
+import actionlib
+import roslib.message
+import rospy
+import argparse
+import sys
+import yaml
+import rostopic
+
+class DynamicAction(object):
+    class NotFound(Exception):
+        pass
+
+    def __init__(self, name):
+        # remove "Action" string from name
+        assert("Action" in name)
+        self.name     = name[0:len(name)-6]
+        self.action   = self.load_submsg('Action')
+        self.goal     = self.load_submsg('Goal')
+        self.feedback = self.load_submsg('Feedback')
+        self.result   = self.load_submsg('Result')
+
+    def load_submsg(self, subname):
+        msgclass = roslib.message.get_message_class(self.name + subname)
+        if msgclass is None:
+            rospy.logfatal('Could not load message for: %s'%(self.name+subname))
+            raise DynamicAction.NotFound("message {} was not found"
+                                         .format(self.name + subname))
+        return msgclass
+
+
+    def _fill_msg(self, msg, values):
+        for k, v in values.iteritems():
+            if type(v) is dict:
+                self._fill_msg(getattr(msg, k), v)
+            else:
+                setattr(msg, k, v)
+
+    def fill_goal(self, values):
+        goal = self.goal()
+        self._fill_msg(goal, values)
+        return goal
+
+
+def parse_args():
+    parser = argparse.ArgumentParser(description='Send a goal to an action server')
+    parser.add_argument('action_name', help='name of the action')
+    parser.add_argument('goal', help='contents of the goal')
+    return parser.parse_args()
+
+
+if __name__ == "__main__":
+    rospy.init_node("axclient_cli", anonymous=True)
+    args = parse_args()
+    try:
+        action = rostopic._get_topic_type(rospy.resolve_name(args.action_name)
+                                          + '/goal')[0][:-4]
+        assert(action != 'Action')
+        da = DynamicAction(action)
+    except (TypeError, AssertionError) as e:
+        print("action {} was not found".format(args.action_name))
+        sys.exit(1)
+    except DynamicAction.NotFound as e:
+        print("action {} could not be loaded".format(action))
+        sys.exit(1)
+    goal = da.fill_goal(yaml.load(args.goal))
+    alc = actionlib.SimpleActionClient(args.action_name, da.action)
+    alc.wait_for_server()
+    alc.send_goal(goal)
+
