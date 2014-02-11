@@ -14,5 +14,5 @@ source your `devel/setup.bash` after running `catkin_make`
 axcli <action server> <goal>
 ```
 
-Bash should provide TAB-completion of both available action
+Bash should provide TAB-completion of available action
 servers and their associated goals.
