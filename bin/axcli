@@ -7,6 +7,7 @@ import argparse
 import sys
 import yaml
 import rostopic
+import signal
 
 class DynamicAction(object):
     class NotFound(Exception):
@@ -47,6 +48,7 @@ def parse_args():
     parser = argparse.ArgumentParser(description='Send a goal to an action server')
     parser.add_argument('action_name', help='name of the action')
     parser.add_argument('goal', help='contents of the goal')
+    parser.add_argument('--wait', action='store_true', help='wait for result')
     return parser.parse_args()
 
 
@@ -68,4 +70,12 @@ if __name__ == "__main__":
     alc = actionlib.SimpleActionClient(args.action_name, da.action)
     alc.wait_for_server()
     alc.send_goal(goal)
+    if args.wait:
+        def cancel(signum, frame):
+            alc.cancel_goal()
+            rospy.signal_shutdown("goal canceled")
+        signal.signal(signal.SIGINT, cancel)
+        alc.wait_for_result()
+        rospy.logdebug("call returned with state {} and result: {}"
+                       .format(alc.get_state(), alc.get_result()))
 
