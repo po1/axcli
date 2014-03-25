@@ -83,4 +83,7 @@ if __name__ == "__main__":
         alc.wait_for_result()
         rospy.logdebug("call returned with state {} and result: {}"
                        .format(alc.get_state(), alc.get_result()))
+        if alc.get_state() != actionlib.GoalStatus.SUCCEEDED:
+            print("\ngoal finished with state {}".format(actionlib.GoalStatus.to_string(alc.get_state())))
+            sys.exit(1)
 
