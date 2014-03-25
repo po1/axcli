@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+from __future__ import print_function
 import actionlib
 import roslib.message
 import rospy
@@ -64,15 +65,15 @@ if __name__ == "__main__":
         assert(action != 'Action')
         da = DynamicAction(action)
     except (TypeError, AssertionError) as e:
-        print("action {} was not found".format(args.action_name))
+        print("action {} was not found".format(args.action_name), file = sys.stderr)
         sys.exit(1)
     except DynamicAction.NotFound as e:
-        print("action {} could not be loaded".format(action))
+        print("action {} could not be loaded".format(action), file = sys.stderr)
         sys.exit(1)
     alc = actionlib.SimpleActionClient(args.action_name, da.action)
     alc_ok = alc.wait_for_server(rospy.Duration().from_sec(args.timeout))
     if not alc_ok:
-        print("timed-out waiting for action {}".format(args.action_name))
+        print("timed-out waiting for action {}".format(args.action_name), file = sys.stderr)
         sys.exit(1)
     goal = da.fill_goal(yaml.load(args.goal))
     alc.send_goal(goal)
@@ -82,12 +83,17 @@ if __name__ == "__main__":
             rospy.signal_shutdown("goal canceled")
         signal.signal(signal.SIGINT, cancel)
         alc.wait_for_result()
-        if args.verbose:
+        if alc.get_state() == actionlib.GoalStatus.SUCCEEDED:
+          if args.verbose:
             print("\ngoal finished with state {} and result:\n{}"
                   .format(actionlib.GoalStatus.to_string(alc.get_state()), alc.get_result()))
-        if alc.get_state() != actionlib.GoalStatus.SUCCEEDED:
-            if not args.verbose:
-                print("\ngoal finished with state {}".format(actionlib.GoalStatus.to_string(alc.get_state())))
-            sys.exit(1)
+        else:
+          if args.verbose:
+             print("\ngoal finished with state {} and result:\n{}"
+                  .format(actionlib.GoalStatus.to_string(alc.get_state()), alc.get_result()), file = sys.stderr)
+          else:
+            print("\ngoal finished with state {}"
+                  .format(actionlib.GoalStatus.to_string(alc.get_state())), file = sys.stderr)
+          sys.exit(1)
     else:
         if args.verbose: print ('\ngoal sent to action server')
