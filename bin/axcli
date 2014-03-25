@@ -51,6 +51,7 @@ def parse_args():
     parser.add_argument('--wait', action='store_true', help='wait for result')
     parser.add_argument('--timeout', type=float, default=0.0,
                         help='timeout in seconds used to wait for the action server (default: infinite timeout)')
+    parser.add_argument('-v', '--verbose', action='store_true', help='verbose output')
     return parser.parse_args()
 
 
@@ -81,9 +82,12 @@ if __name__ == "__main__":
             rospy.signal_shutdown("goal canceled")
         signal.signal(signal.SIGINT, cancel)
         alc.wait_for_result()
-        rospy.logdebug("call returned with state {} and result: {}"
-                       .format(alc.get_state(), alc.get_result()))
+        if args.verbose:
+            print("\ngoal finished with state {} and result:\n{}"
+                  .format(actionlib.GoalStatus.to_string(alc.get_state()), alc.get_result()))
         if alc.get_state() != actionlib.GoalStatus.SUCCEEDED:
-            print("\ngoal finished with state {}".format(actionlib.GoalStatus.to_string(alc.get_state())))
+            if not args.verbose:
+                print("\ngoal finished with state {}".format(actionlib.GoalStatus.to_string(alc.get_state())))
             sys.exit(1)
-
+    else:
+        if args.verbose: print ('\ngoal sent to action server')
